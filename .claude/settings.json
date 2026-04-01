@@ -1,0 +1,78 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git diff)",
+      "Bash(git diff *)",
+      "Bash(git branch)",
+      "Bash(git branch *)",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git merge *)",
+      "Bash(git log)",
+      "Bash(git log *)",
+      "Bash(git stash)",
+      "Bash(git stash *)",
+      "Bash(git worktree *)",
+      "Bash(git push *)",
+      "Bash(git reset *)",
+      "Bash(gh pr *)",
+      "Bash(gh api *)",
+
+      "Bash(bd *)",
+
+      "Bash(npm install)",
+      "Bash(npm install *)",
+      "Bash(npm test)",
+      "Bash(npm test *)",
+      "Bash(npm run *)",
+      "Bash(npm ls *)",
+      "Bash(npx jest *)",
+      "Bash(npx next *)",
+      "Bash(npx eslint *)",
+      "Bash(npx tsc *)",
+      "Bash(npx tsc)",
+      "Bash(npx playwright *)",
+      "Bash(npx supabase *)",
+
+      "Bash(mkdir *)",
+      "Bash(ls)",
+      "Bash(ls *)",
+      "Bash(pwd)",
+      "Bash(node *)",
+
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+
+      "Agent(*)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Edit(.env*)",
+      "Write(.env*)",
+      "Edit(.git/**)",
+      "Write(.git/**)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx next lint --quiet 2>&1 || true"
+          }
+        ]
+      }
+    ]
+  }
+}
