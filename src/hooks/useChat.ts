@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { MODEL_CONFIGS } from "@/../config/models";
-import { sendChatRequest } from "@/lib/api-client";
+import { sendChatRequest, saveLog } from "@/lib/api-client";
 import { Conversation, ResponseState } from "@/types";
 
 interface UseChatReturn {
@@ -42,6 +42,9 @@ export function useChat(): UseChatReturn {
   const [selectedModels, setSelectedModels] =
     useState<string[]>(defaultSelectedModels);
   const [expandedModelId, setExpandedModelId] = useState<string | null>(null);
+  const [sessionStartTime, setSessionStartTime] = useState<string>(
+    () => new Date().toISOString()
+  );
 
   const isSending = Object.values(responseStates).some(
     (s) => s.status === "loading"
@@ -60,6 +63,8 @@ export function useChat(): UseChatReturn {
         return next;
       });
 
+      const userTimestamp = new Date().toISOString();
+
       setConversations((prev) => {
         const next = { ...prev };
         for (const modelId of selectedModels) {
@@ -67,7 +72,7 @@ export function useChat(): UseChatReturn {
           next[modelId] = {
             messages: [
               ...existing.messages,
-              { role: "user", content: prompt },
+              { role: "user", content: prompt, timestamp: userTimestamp },
             ],
           };
         }
@@ -80,11 +85,18 @@ export function useChat(): UseChatReturn {
         // ユーザーメッセージを含む会話履歴を直接組み立てる
         const currentMessages = [
           ...(conversations[modelId]?.messages ?? []),
-          { role: "user" as const, content: prompt },
+          { role: "user" as const, content: prompt, timestamp: userTimestamp },
         ];
 
         return sendChatRequest(modelId, currentMessages)
           .then((result) => {
+            const assistantTimestamp = new Date().toISOString();
+            const assistantMessage = {
+              role: "assistant" as const,
+              content: result.content,
+              timestamp: assistantTimestamp,
+            };
+
             setConversations((prev) => {
               const existing = prev[modelId] ?? { messages: [] };
               return {
@@ -92,7 +104,7 @@ export function useChat(): UseChatReturn {
                 [modelId]: {
                   messages: [
                     ...existing.messages,
-                    { role: "assistant", content: result.content },
+                    assistantMessage,
                   ],
                 },
               };
@@ -104,6 +116,24 @@ export function useChat(): UseChatReturn {
                 tokenCount: result.tokenCount,
               },
             }));
+
+            // ログ保存: 失敗しても画面に影響させない
+            const modelConfig = MODEL_CONFIGS.find((m) => m.id === modelId);
+            if (modelConfig) {
+              const updatedMessages = [
+                ...currentMessages,
+                assistantMessage,
+              ];
+              saveLog({
+                sessionStartTime,
+                modelId: modelConfig.modelId,
+                modelName: modelConfig.name,
+                provider: modelConfig.provider,
+                messages: updatedMessages,
+              }).catch(() => {
+                // ログ保存の失敗は無視する
+              });
+            }
           })
           .catch((error: unknown) => {
             const message =
@@ -120,7 +150,7 @@ export function useChat(): UseChatReturn {
 
       await Promise.allSettled(promises);
     },
-    [selectedModels, conversations]
+    [selectedModels, conversations, sessionStartTime]
   );
 
   const toggleModel = useCallback((modelId: string) => {
@@ -139,6 +169,7 @@ export function useChat(): UseChatReturn {
     setConversations({});
     setResponseStates(buildInitialResponseStates());
     setExpandedModelId(null);
+    setSessionStartTime(new Date().toISOString());
   }, []);
 
   return {

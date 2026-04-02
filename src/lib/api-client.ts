@@ -1,4 +1,4 @@
-import { ChatMessage, ChatResponse } from "@/types";
+import { ChatMessage, ChatResponse, LogRequest } from "@/types";
 
 export async function sendChatRequest(
   modelId: string,
@@ -16,4 +16,13 @@ export async function sendChatRequest(
   }
 
   return response.json();
+}
+
+export async function saveLog(logRequest: LogRequest): Promise<void> {
+  await fetch("/api/log", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(logRequest),
+  });
+  // 成功/失敗にかかわらず、画面には影響させない
 }
