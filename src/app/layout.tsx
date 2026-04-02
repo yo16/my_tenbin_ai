@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "天秤AI",
+  title: "my天秤AI",
   description: "複数のAIモデルに同じプロンプトを送り、回答を並べて比較するツール",
 };
 

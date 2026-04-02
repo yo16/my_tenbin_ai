@@ -12,7 +12,7 @@ interface HeaderProps {
 export function Header({ onReset, hasConversation }: HeaderProps) {
   return (
     <header className={styles.header}>
-      <h1 className={styles.title}>天秤AI</h1>
+      <h1 className={styles.title}>my天秤AI</h1>
       <button
         className={styles.resetButton}
         onClick={onReset}
