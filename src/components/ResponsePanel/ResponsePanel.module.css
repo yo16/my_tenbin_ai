@@ -1,0 +1,24 @@
+.panel {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* カラム数が4未満の場合 */
+.panel[data-columns="3"] {
+  grid-template-columns: repeat(3, 1fr);
+}
+.panel[data-columns="2"] {
+  grid-template-columns: repeat(2, 1fr);
+}
+.panel[data-columns="1"] {
+  grid-template-columns: 1fr;
+}
+
+/* 拡大表示時 */
+.panelExpanded {
+  grid-template-columns: 1fr;
+}
