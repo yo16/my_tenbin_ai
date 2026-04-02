@@ -61,9 +61,9 @@ export function ResponseColumn({
     .join(" ");
 
   return (
-    <div className={columnClassName} onClick={onToggleExpand}>
-      {/* ヘッダー部 */}
-      <div className={styles.columnHeader} data-provider={model.provider}>
+    <div className={columnClassName}>
+      {/* ヘッダー部（クリックで拡大/縮小） */}
+      <div className={styles.columnHeader} data-provider={model.provider} onClick={onToggleExpand}>
         <div className={styles.headerLeft}>
           <span className={styles.modelName}>{model.name}</span>
           <span className={styles.modelId}>{model.modelId}</span>

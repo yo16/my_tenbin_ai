@@ -6,7 +6,6 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  cursor: pointer;
   transition: box-shadow var(--transition-fast);
 }
 
@@ -14,12 +13,9 @@
   box-shadow: var(--shadow-md);
 }
 
-.columnExpanded {
-  cursor: default;
-}
-
-/* ヘッダー部（プロバイダー別カラーをトップボーダーで表示） */
+/* ヘッダー部（プロバイダー別カラーをトップボーダーで表示、クリックで拡大/縮小） */
 .columnHeader {
+  cursor: pointer;
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border);
   display: flex;
