@@ -23,6 +23,15 @@ export interface ModelParameters {
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  timestamp?: string; // ISO 8601 形式
+}
+
+export interface LogRequest {
+  sessionStartTime: string; // ISO 8601
+  modelId: string;
+  modelName: string;
+  provider: string;
+  messages: ChatMessage[];
 }
 
 export interface Conversation {
