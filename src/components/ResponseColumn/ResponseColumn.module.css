@@ -1,0 +1,123 @@
+.column {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow var(--transition-fast);
+}
+
+.column:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.columnExpanded {
+  cursor: default;
+}
+
+/* ヘッダー部（プロバイダー別カラーをトップボーダーで表示） */
+.columnHeader {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.columnHeader[data-provider="openai"] {
+  border-top: 3px solid var(--color-openai);
+}
+
+.columnHeader[data-provider="anthropic"] {
+  border-top: 3px solid var(--color-anthropic);
+}
+
+.columnHeader[data-provider="gemini"] {
+  border-top: 3px solid var(--color-gemini);
+}
+
+.columnHeader[data-provider="perplexity"] {
+  border-top: 3px solid var(--color-perplexity);
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.modelName {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-base);
+}
+
+.modelId {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.tokenCount {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+/* 回答本文エリア */
+.content {
+  flex: 1;
+  padding: var(--space-4);
+  overflow-y: auto;
+}
+
+/* ユーザーメッセージ */
+.userMessage {
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+  background-color: var(--color-accent-light);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* アシスタントメッセージ */
+.assistantMessage {
+  margin-bottom: var(--space-4);
+}
+
+/* エラー表示 */
+.error {
+  padding: var(--space-3);
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+/* フッター（コピーボタン） */
+.columnFooter {
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.copyButton {
+  padding: var(--space-1) var(--space-3);
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.copyButton:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.copyButtonSuccess {
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
