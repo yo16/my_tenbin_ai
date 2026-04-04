@@ -114,6 +114,7 @@ export function useChat(): UseChatReturn {
               [modelId]: {
                 status: "success",
                 tokenCount: result.tokenCount,
+                citations: result.citations,
               },
             }));
 
