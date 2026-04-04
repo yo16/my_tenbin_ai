@@ -48,6 +48,7 @@ export interface ResponseState {
   status: ResponseStatus;
   tokenCount?: TokenCount;
   error?: string;
+  citations?: string[];
 }
 
 export interface TokenCount {
@@ -68,6 +69,7 @@ export interface ChatRequest {
 export interface ChatResponse {
   content: string;
   tokenCount: TokenCount;
+  citations?: string[];
 }
 
 export interface ChatErrorResponse {

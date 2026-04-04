@@ -7,6 +7,7 @@ import { PerplexityProvider } from "./perplexity";
 export interface ProviderResponse {
   content: string;
   tokenCount: TokenCount;
+  citations?: string[];
 }
 
 export interface AIProvider {

@@ -102,6 +102,25 @@ export function ResponseColumn({
         {responseState.status === "error" && responseState.error && (
           <div className={styles.error}>{responseState.error}</div>
         )}
+
+        {/* 引用リスト */}
+        {responseState.citations && responseState.citations.length > 0 && (
+          <div className={styles.citations}>
+            <div className={styles.citationsTitle}>引用:</div>
+            {responseState.citations.map((url, index) => (
+              <div key={index} className={styles.citationItem}>
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.citationLink}
+                >
+                  [{index + 1}] {url}
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* フッター（コピーボタン） */}

@@ -106,6 +106,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       content: result.content,
       tokenCount: result.tokenCount,
+      citations: result.citations,
     });
   } catch (err: unknown) {
     // エラーの種別を判定

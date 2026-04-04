@@ -117,3 +117,32 @@
   color: var(--color-success);
   border-color: var(--color-success);
 }
+
+/* 引用リスト */
+.citations {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.citationsTitle {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.citationItem {
+  font-size: var(--font-size-xs);
+  margin-bottom: var(--space-1);
+}
+
+.citationLink {
+  color: var(--color-accent);
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.citationLink:hover {
+  text-decoration: underline;
+}
