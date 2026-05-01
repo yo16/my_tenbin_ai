@@ -65,6 +65,8 @@ interface ChatResponse {
   content: string;
   /** 使用トークン数 */
   tokenCount: TokenCount;
+  /** Web検索で参照したURL一覧（検索が実施された場合のみ） */
+  citations?: string[];
 }
 
 interface TokenCount {
@@ -84,7 +86,11 @@ interface TokenCount {
     "prompt": 150,
     "completion": 320,
     "total": 470
-  }
+  },
+  "citations": [
+    "https://www.typescriptlang.org/docs/",
+    "https://example.com/article"
+  ]
 }
 ```
 
@@ -144,6 +150,18 @@ export async function POST(request: NextRequest) {
 
 各AIサービスのSDK呼び出しを抽象化するプロバイダー層を設ける。
 
+### Web検索の常時有効化方針
+
+| プロバイダー | 利用API | 検索の有効化方法 |
+|---|---|---|
+| OpenAI | Responses API (`client.responses.create`) | `tools: [{ type: "web_search" }]` を常に付与 |
+| Anthropic | Messages API (`client.messages.create`) | `tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }]` を常に付与 |
+| Gemini | `generateContent` | `config.tools: [{ googleSearch: {} }]` を常に付与 |
+| Perplexity | OpenAI互換 `chat.completions` | モデル本体が検索ベース。ツール指定不要 |
+
+検索結果として参照したURL一覧は、各プロバイダーの応答から抽出して `ProviderResponse.citations: string[]` に統一フォーマットで格納する。citations が取得できない場合は省略する。
+
+
 ### インターフェース
 
 ```typescript
@@ -157,6 +175,8 @@ interface AIProvider {
 interface ProviderResponse {
   content: string;
   tokenCount: TokenCount;
+  /** Web検索で参照したURL一覧（取得できた場合のみ） */
+  citations?: string[];
 }
 ```
 
@@ -185,31 +205,46 @@ export function getProvider(providerId: string): AIProvider {
 
 #### OpenAI (`src/lib/providers/openai.ts`)
 
+Web検索を有効化するため **Responses API** を使用する（`chat.completions` ではWeb検索ツールが使えないため）。
+`tools: [{ type: "web_search" }]` を常に渡し、応答からテキスト・トークン数・参照URLを抽出する。
+
 ```typescript
 import OpenAI from "openai";
 
 export class OpenAIProvider implements AIProvider {
   async chat(messages: ChatMessage[], config: ModelConfig): Promise<ProviderResponse> {
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const response = await client.chat.completions.create({
+    const response = await client.responses.create({
       model: config.modelId,
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      input: messages.map(m => ({ role: m.role, content: m.content })),
+      tools: [{ type: "web_search" }],
       temperature: config.parameters.temperature,
-      max_tokens: config.parameters.maxTokens,
+      max_output_tokens: config.parameters.maxTokens,
     });
+
+    // 応答テキストは output_text、参照URLは output 配列内の url_citation アノテーションから抽出
+    const content = response.output_text ?? "";
+    const citations = extractOpenAICitations(response);
+
     return {
-      content: response.choices[0].message.content ?? "",
+      content,
       tokenCount: {
-        prompt: response.usage?.prompt_tokens ?? 0,
-        completion: response.usage?.completion_tokens ?? 0,
+        prompt: response.usage?.input_tokens ?? 0,
+        completion: response.usage?.output_tokens ?? 0,
         total: response.usage?.total_tokens ?? 0,
       },
+      citations,
     };
   }
 }
 ```
 
+**注意:** GPT-5系・o系の推論モデルでは `temperature` が利用不可のため、モデルIDで条件分岐して除外する（既存実装の `isReasoningModel` 判定を踏襲）。
+
 #### Anthropic (`src/lib/providers/anthropic.ts`)
+
+`tools` に `web_search_20250305` を常に渡してWeb検索を有効化する。
+レスポンスの `content` ブロックから `text` を結合し、`web_search_tool_result` の citations を抽出する。
 
 ```typescript
 import Anthropic from "@anthropic-ai/sdk";
@@ -222,11 +257,21 @@ export class AnthropicProvider implements AIProvider {
       max_tokens: config.parameters.maxTokens ?? 4096,
       messages: messages.map(m => ({ role: m.role, content: m.content })),
       temperature: config.parameters.temperature,
+      tools: [
+        {
+          type: "web_search_20250305",
+          name: "web_search",
+          max_uses: 5,
+        },
+      ],
     });
+
     const content = response.content
       .filter(block => block.type === "text")
       .map(block => block.text)
       .join("");
+    const citations = extractAnthropicCitations(response);
+
     return {
       content,
       tokenCount: {
@@ -234,6 +279,7 @@ export class AnthropicProvider implements AIProvider {
         completion: response.usage.output_tokens,
         total: response.usage.input_tokens + response.usage.output_tokens,
       },
+      citations,
     };
   }
 }
@@ -241,13 +287,15 @@ export class AnthropicProvider implements AIProvider {
 
 #### Gemini (`src/lib/providers/gemini.ts`)
 
+`config.tools` に `googleSearch` を常に渡して Grounding with Google Search を有効化する。
+`groundingMetadata.groundingChunks` から参照URLを抽出する。
+
 ```typescript
 import { GoogleGenAI } from "@google/genai";
 
 export class GeminiProvider implements AIProvider {
   async chat(messages: ChatMessage[], config: ModelConfig): Promise<ProviderResponse> {
     const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
-    // Gemini は会話履歴を contents 形式で渡す
     const contents = messages.map(m => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
@@ -258,8 +306,12 @@ export class GeminiProvider implements AIProvider {
       config: {
         temperature: config.parameters.temperature,
         maxOutputTokens: config.parameters.maxTokens,
+        tools: [{ googleSearch: {} }],
       },
     });
+
+    const citations = extractGeminiCitations(response);
+
     return {
       content: response.text ?? "",
       tokenCount: {
@@ -267,6 +319,7 @@ export class GeminiProvider implements AIProvider {
         completion: response.usageMetadata?.candidatesTokenCount ?? 0,
         total: response.usageMetadata?.totalTokenCount ?? 0,
       },
+      citations,
     };
   }
 }
@@ -274,12 +327,14 @@ export class GeminiProvider implements AIProvider {
 
 #### Perplexity (`src/lib/providers/perplexity.ts`)
 
+Perplexity は **モデル本体が検索ベース**のため、追加のツール指定は不要。
+レスポンスの `citations` フィールドから参照URLを取得する。
+
 ```typescript
 import OpenAI from "openai";
 
 export class PerplexityProvider implements AIProvider {
   async chat(messages: ChatMessage[], config: ModelConfig): Promise<ProviderResponse> {
-    // Perplexity は OpenAI互換API
     const client = new OpenAI({
       apiKey: process.env.PERPLEXITY_API_KEY,
       baseURL: "https://api.perplexity.ai",
@@ -290,6 +345,7 @@ export class PerplexityProvider implements AIProvider {
       temperature: config.parameters.temperature,
       max_tokens: config.parameters.maxTokens,
     });
+    const citations = (response as unknown as { citations?: string[] }).citations;
     return {
       content: response.choices[0].message.content ?? "",
       tokenCount: {
@@ -297,6 +353,7 @@ export class PerplexityProvider implements AIProvider {
         completion: response.usage?.completion_tokens ?? 0,
         total: response.usage?.total_tokens ?? 0,
       },
+      citations,
     };
   }
 }
