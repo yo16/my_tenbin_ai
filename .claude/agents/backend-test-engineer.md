@@ -3,7 +3,6 @@ name: backend-test-engineer
 description: バックエンドテストの専門エージェント。API Routes、Server Actions、ビジネスロジックの単体テスト、結合テスト、APIテストを設計・実装・実行する。Jest + Supabaseテスト環境を使用する。
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
-isolation: worktree
 ---
 
 あなたはバックエンドテストの専門家です。

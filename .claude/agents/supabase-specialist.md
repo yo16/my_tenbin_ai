@@ -3,7 +3,6 @@ name: supabase-specialist
 description: Supabaseの専門エージェント。DB実装（マイグレーション、クエリ）、Auth設定、RLSポリシー、Storage、Realtimeなど、Supabase固有の機能を実装する。Supabase MCPを使用してSupabaseを直接操作する。
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
-isolation: worktree
 mcpServers:
   - supabase:
       type: stdio
