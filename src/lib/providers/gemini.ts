@@ -1,9 +1,28 @@
-import { GoogleGenAI } from "@google/genai";
-import { ChatMessage, ModelConfig, TokenCount } from "@/types";
+import {
+  GoogleGenAI,
+  type GenerateContentResponse,
+  type GroundingChunk,
+} from "@google/genai";
+import { ChatMessage, ModelConfig } from "@/types";
+import { ProviderResponse } from "./index";
 
-export interface ProviderResponse {
-  content: string;
-  tokenCount: TokenCount;
+function extractCitations(
+  response: GenerateContentResponse
+): string[] | undefined {
+  const urls = new Set<string>();
+  const chunks: GroundingChunk[] | undefined =
+    response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+
+  if (!Array.isArray(chunks)) return undefined;
+
+  for (const chunk of chunks) {
+    const uri = chunk.web?.uri;
+    if (typeof uri === "string" && uri.length > 0) {
+      urls.add(uri);
+    }
+  }
+
+  return urls.size > 0 ? Array.from(urls) : undefined;
 }
 
 export class GeminiProvider {
@@ -24,8 +43,11 @@ export class GeminiProvider {
       config: {
         temperature: config.parameters.temperature,
         maxOutputTokens: config.parameters.maxTokens,
+        tools: [{ googleSearch: {} }],
       },
     });
+
+    const citations = extractCitations(response);
 
     return {
       content: response.text ?? "",
@@ -34,6 +56,7 @@ export class GeminiProvider {
         completion: response.usageMetadata?.candidatesTokenCount ?? 0,
         total: response.usageMetadata?.totalTokenCount ?? 0,
       },
+      ...(citations !== undefined ? { citations } : {}),
     };
   }
 }
