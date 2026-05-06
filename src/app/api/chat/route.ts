@@ -1,7 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import OpenAI, { APIError as OpenAIAPIError } from "openai";
 import { getProvider } from "@/lib/providers";
 import { MODEL_CONFIGS } from "../../../../config/models";
 import { ChatRequest, ChatErrorResponse } from "@/types";
+
+// 構造化エラーログの型（route.ts 内ローカル）
+interface ChatErrorLog {
+  timestamp: string;
+  provider: string;
+  modelId: string;
+  reqId: string;
+  errorName: string;
+  errorMessage: string;
+  errorStatus: number | undefined;
+  errorCode: string | undefined;
+  errorType: string | undefined;
+  errorBody: unknown;
+  requestId: string | undefined;
+  retryAfter: string | undefined;
+  stack: string | undefined;
+}
 
 // プロバイダーごとの環境変数マッピング
 const PROVIDER_ENV_KEYS: Record<string, string> = {
@@ -28,6 +46,9 @@ function errorResponse(
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  // 相関ID（ログのひも付け用）
+  const reqId = crypto.randomUUID().slice(0, 8);
+
   // 1. リクエストボディのパース
   let body: unknown;
   try {
@@ -100,6 +121,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 4. プロバイダー経由でリクエスト送信
   try {
+    console.info(
+      `[chat][reqId=${reqId}][provider=${modelConfig.provider}][model=${modelConfig.modelId}] start`
+    );
+
     const provider = getProvider(modelConfig.provider);
     const result = await provider.chat(messages, modelConfig);
 
@@ -109,6 +134,65 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       citations: result.citations,
     });
   } catch (err: unknown) {
+    // 構造化エラーログ（サーバーターミナル向け。UIレスポンスは変更しない）
+    {
+      const isOpenAIError = err instanceof OpenAI.APIError;
+      const isErrorObj = err instanceof Error;
+
+      // ヘッダアクセスのヘルパ（Headers オブジェクトと Record<string, string> の両方に対応）
+      const getHeader = (
+        headers: unknown,
+        key: string
+      ): string | undefined => {
+        if (!headers || typeof headers !== "object") return undefined;
+        const h = headers as Record<string, unknown>;
+        if (typeof h[key] === "string") return h[key] as string;
+        // Headers オブジェクト（get メソッドあり）の場合
+        if (typeof (headers as { get?: unknown }).get === "function") {
+          const val = (headers as { get: (k: string) => string | null }).get(
+            key
+          );
+          return val ?? undefined;
+        }
+        return undefined;
+      };
+
+      const rawHeaders = isOpenAIError
+        ? (err as OpenAIAPIError).headers
+        : undefined;
+
+      const logEntry: ChatErrorLog = {
+        timestamp: new Date().toISOString(),
+        provider: modelConfig.provider,
+        modelId: modelConfig.modelId,
+        reqId,
+        errorName: isErrorObj ? err.name : String(err),
+        errorMessage: isErrorObj ? err.message : String(err),
+        errorStatus: isOpenAIError
+          ? (err as OpenAIAPIError).status
+          : undefined,
+        errorCode: isOpenAIError
+          ? ((err as OpenAIAPIError & { code?: string }).code ?? undefined)
+          : (isErrorObj
+              ? ((err as Error & { code?: string }).code ?? undefined)
+              : undefined),
+        errorType: isOpenAIError
+          ? ((err as OpenAIAPIError).type ?? undefined)
+          : undefined,
+        errorBody: isOpenAIError
+          ? (err as OpenAIAPIError & { error?: unknown }).error
+          : undefined,
+        requestId: getHeader(rawHeaders, "x-request-id"),
+        retryAfter: getHeader(rawHeaders, "retry-after"),
+        stack: isErrorObj ? err.stack : undefined,
+      };
+
+      console.error(
+        `[chat][reqId=${reqId}][provider=${modelConfig.provider}][model=${modelConfig.modelId}] error`,
+        logEntry
+      );
+    }
+
     // エラーの種別を判定
     if (err instanceof Error) {
       const message = err.message.toLowerCase();
