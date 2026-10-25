@@ -144,3 +144,7 @@ vite.config.ts.timestamp-*
 
 # Chat logs
 /log/
+
+# bd (beads) 1.3.2 runtime files
+*.gate.lock*
+.beads-credential-key
