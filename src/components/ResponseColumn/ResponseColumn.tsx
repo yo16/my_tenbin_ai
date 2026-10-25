@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { ModelConfig, Conversation, ResponseState } from "@/types";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer/MarkdownRenderer";
 import { LoadingIndicator } from "@/components/LoadingIndicator/LoadingIndicator";
@@ -27,6 +27,30 @@ export function ResponseColumn({
   onToggleExpand,
 }: ResponseColumnProps) {
   const [isCopied, setIsCopied] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+
+    const handleScroll = () => {
+      const { scrollHeight, scrollTop, clientHeight } = el;
+      setIsAtBottom(scrollHeight - scrollTop - clientHeight < 100);
+    };
+
+    el.addEventListener("scroll", handleScroll);
+    return () => {
+      el.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  const handleScrollToBottom = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const el = contentRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, []);
 
   // 最新のアシスタントメッセージを取得
   const latestAssistantMessage = conversation?.messages
@@ -76,7 +100,7 @@ export function ResponseColumn({
       </div>
 
       {/* 回答本文エリア */}
-      <div className={styles.content}>
+      <div className={styles.content} ref={contentRef}>
         {/* 会話履歴 */}
         {conversation?.messages.map((message, index) => {
           if (message.role === "user") {
@@ -101,6 +125,36 @@ export function ResponseColumn({
         {/* エラー表示 */}
         {responseState.status === "error" && responseState.error && (
           <div className={styles.error}>{responseState.error}</div>
+        )}
+
+        {/* 一番下へスクロールボタン */}
+        {!isAtBottom && (
+          <button
+            className={styles.scrollToBottom}
+            onClick={handleScrollToBottom}
+            aria-label="一番下へスクロール"
+          >
+            ↓
+          </button>
+        )}
+
+        {/* 引用リスト */}
+        {responseState.citations && responseState.citations.length > 0 && (
+          <div className={styles.citations}>
+            <div className={styles.citationsTitle}>引用:</div>
+            {responseState.citations.map((url, index) => (
+              <div key={index} className={styles.citationItem}>
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.citationLink}
+                >
+                  [{index + 1}] {url}
+                </a>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

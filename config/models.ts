@@ -15,7 +15,8 @@ export const MODEL_CONFIGS: ModelConfig[] = [
     id: "openai",
     name: "OpenAI",
     provider: "openai",
-    modelId: "gpt-4.1",
+    //modelId: "gpt-4.1",
+    modelId: "gpt-5.4-mini",
     enabled: true,
     parameters: {
       temperature: 0.7,

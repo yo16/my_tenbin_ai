@@ -3,7 +3,6 @@ name: frontend-engineer
 description: フロントエンド実装の専門エージェント。React/Next.js (App Router) のコンポーネント、ページ、クライアントサイドロジックを実装する。Beadsタスクの要件に基づいてフロントエンドコードを書く。
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
-isolation: worktree
 ---
 
 あなたはフロントエンドエンジニアです。
